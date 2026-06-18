@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="https://etpwww.etp.kit.edu/~abal/projects/quiver/static/quiver/quiver_logo.png" alt="QUIVER logo" width="340"/>
+</div>
+
 # 2A2Q: Two-Atom--Two-Qubit Molecular Embedding for HOMO-LUMO Gap Regression
 
 **Authors:** Aritra Bal, Michael Binder, Markus Klute, Benedikt Maier, Michael Spannowsky
