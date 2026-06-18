@@ -1,20 +1,20 @@
-# 2A2Q: Two-Atom–Two-Qubit Molecular Embedding for HOMO-LUMO Gap Regression
+# 2A2Q: Two-Atom--Two-Qubit Molecular Embedding for HOMO-LUMO Gap Regression
 
 **Authors:** Aritra Bal, Michael Binder, Markus Klute, Benedikt Maier, Michael Spannowsky
 
 **Contact:** [aritra.bal@kit.edu](mailto:aritra.bal@kit.edu)
 
 [![arXiv](https://img.shields.io/badge/arXiv-2606.02785-b31b1b.svg)](https://arxiv.org/abs/2606.02785)
-[![ICML 2026](https://img.shields.io/badge/ICML_2026-AI4Physics_Workshop-purple.svg)](https://arxiv.org/abs/2606.02785)
+[![ICML 2026](https://img.shields.io/badge/ICML_2026-AI4Physics_Workshop-purple.svg)](https://ai4physics-workshop.github.io/)
 [![Project Page](https://img.shields.io/badge/Project-Page-blue.svg)](https://etpwww.etp.kit.edu/~abal/projects/quiver/)
 
 ---
 
 ## Overview
 
-This repository contains the implementation of the **2A2Q** (Two-Atom–Two-Qubit) variational quantum circuit (VQC), introduced as part of the [QUIVER](https://arxiv.org/abs/2606.02785) framework. The 2A2Q circuit encodes molecular structure into a quantum state and is trained to regress the **HOMO-LUMO gap** Δε = ε_HOMO − ε_LUMO on the [QM9](https://www.nature.com/articles/sdata201422) dataset.
+This repository contains the implementation of the **2A2Q** (Two-Atom--Two-Qubit) variational quantum circuit (VQC), introduced as part of the [QUIVER](https://arxiv.org/abs/2606.02785) framework. The 2A2Q circuit encodes molecular structure into a quantum state and is trained to regress the **HOMO-LUMO gap** $\Delta\varepsilon = \varepsilon_\mathrm{HOMO} - \varepsilon_\mathrm{LUMO}$ on the [QM9](https://www.nature.com/articles/sdata201422) dataset.
 
-The trained 2A2Q circuit is used within QUIVER to extract the **Quantum Fisher Information Matrix (QFIM)** — a geometry-aware, basis-independent summary of higher-order correlations captured by the learned quantum state manifold. This QFIM serves as a complementary quantum view that is fused into a classical graph neural network (DimeNet++) to improve molecular property prediction.
+The trained 2A2Q circuit is used within QUIVER to extract the **Quantum Fisher Information Matrix (QFIM)** -- a geometry-aware, basis-independent summary of higher-order correlations captured by the learned quantum state manifold. This QFIM serves as a complementary quantum view that is fused into a classical graph neural network (DimeNet++) to improve molecular property prediction.
 
 ---
 
@@ -22,41 +22,35 @@ The trained 2A2Q circuit is used within QUIVER to extract the **Quantum Fisher I
 
 Each molecule is represented as a 10-qubit system, with one qubit assigned to each heavy atom (unused qubit slots are filled with randomly sampled hydrogen atoms).
 
-**Per-atom initialization.** Each qubit *j* is initialized with a species-dependent rotation:
+**Per-atom initialization.** Each qubit $j$ is initialized with a species-dependent rotation:
 
-```
-RY(w^j_atom) |0>
-```
+$$R_Y\!\left(w^j_\mathrm{atom}\right)|0\rangle$$
 
-where `w^j_atom` is a trainable parameter encoding the atomic species occupying qubit *j*.
+where $w^j_\mathrm{atom}$ is a trainable parameter encoding the atomic species occupying qubit $j$.
 
-**Pairwise entanglement.** For every pair of atoms *(i, j)* satisfying `d_ij < d_CUTOFF = 1.7 Å` and connected by a chemical bond, a two-qubit entanglement block is applied. The encoding angles are:
+**Pairwise entanglement.** For every pair of atoms $(i, j)$ satisfying $d_{ij} < d_\mathrm{CUTOFF} = 1.7\ \text{A}$ and connected by a chemical bond, a two-qubit entanglement block is applied. The encoding angles are:
 
-```
-ω1^(ij) = e_d1 · (1 − d_ij / d_CUTOFF) · cos(θ_ij)
-ω2^(ij) = e^(ij)_bond · π
-ω3^(ij) = e_d2 · (1 − d_ij / d_CUTOFF) · cos(φ_ij)
-```
+$$\omega_1^{(ij)} = e_{d_1} \cdot \left(1 - \frac{d_{ij}}{d_\mathrm{CUTOFF}}\right) \cos\theta_{ij}$$
 
-where `e_d1`, `e_d2` are learnable distance-scaling parameters, `e^(ij)_bond` is a learnable bond-type entanglement parameter, and `d_ij`, `θ_ij`, `φ_ij` are the pairwise distance, zenith angle, and azimuthal angle for the atom pair. The pairwise entanglement unitary applied to the pair is:
+$$\omega_2^{(ij)} = e_\mathrm{bond}^{(ij)} \cdot \pi$$
 
-```
-U_ij = ( I_YY(ω3) I_ZZ(ω2) I_XX(ω1) ) ( RY(w^i_atom) ⊗ RY(w^j_atom) ) |00>
-```
+$$\omega_3^{(ij)} = e_{d_2} \cdot \left(1 - \frac{d_{ij}}{d_\mathrm{CUTOFF}}\right) \cos\phi_{ij}$$
 
-where `I_XX`, `I_YY`, `I_ZZ` are Ising-type two-qubit interactions.
+where $e_{d_1}$, $e_{d_2}$ are learnable distance-scaling parameters, $e_\mathrm{bond}^{(ij)}$ is a learnable bond-type entanglement parameter, and $d_{ij}$, $\theta_{ij}$, $\phi_{ij}$ are the pairwise distance, zenith angle, and azimuthal angle for the atom pair. The two-qubit entanglement unitary applied to the pair is:
 
-**Trainable rotations.** After each entanglement stage, a per-qubit trainable rotation sequence `RZ · RY · RZ` is applied with independent parameters per qubit. The above constitutes one circuit layer; N = 2 layers are stacked in the final architecture.
+$$\mathcal{U}_{ij} = \left(I_{YY}\!\left(\omega_3^{(ij)}\right) I_{ZZ}\!\left(\omega_2^{(ij)}\right) I_{XX}\!\left(\omega_1^{(ij)}\right)\right) \left(R_Y\!\left(w^i_\mathrm{atom}\right) \otimes R_Y\!\left(w^j_\mathrm{atom}\right)\right) |00\rangle$$
+
+where $I_{XX}$, $I_{YY}$, $I_{ZZ}$ are Ising-type two-qubit interactions.
+
+**Trainable rotations.** After each entanglement stage, a per-qubit trainable rotation sequence $R_Z \cdot R_Y \cdot R_Z$ is applied with independent parameters per qubit. The above constitutes one circuit layer; $N = 2$ layers are stacked in the final architecture.
 
 **Measurement.** The HOMO-LUMO gap prediction is extracted from the observable:
 
-```
-H = Σ c_i Z_i   (i = 1, ..., N)
-```
+$$\mathcal{H} = \sum_{i=1}^{N} c_i Z_i$$
 
-where `{c_i}` are trainable coefficients and `Z_i` is the Pauli-Z operator on qubit *i*. Since the gap is strictly positive, the raw expectation value is shifted by Σ|c_i|. The circuit is optimized using the Huber loss.
+where $\{c_i\}$ are trainable coefficients and $Z_i$ is the Pauli-Z operator on qubit $i$. Since the gap is strictly positive, the raw expectation value $\langle\mathcal{H}\rangle$ is shifted by $\sum_i |c_i|$. The circuit is optimized using the Huber loss.
 
-**QFIM output.** The resulting QFIM is a 10 × 10 grid of 6 × 6 sub-blocks (a 60 × 60 real symmetric matrix), where the off-diagonal sub-block Q_ij captures the coherent coupling between atoms *i* and *j* through the intrinsic geometry of the quantum state manifold. This matrix is consumed downstream by QDimeNet++ as described in the QUIVER paper.
+**QFIM output.** The resulting QFIM is a $10 \times 10$ grid of $6 \times 6$ sub-blocks (a $60 \times 60$ real symmetric matrix), where the off-diagonal sub-block $Q_{ij}$ captures the coherent coupling between atoms $i$ and $j$ through the intrinsic geometry of the quantum state manifold. This matrix is consumed downstream by QDimeNet++ as described in the QUIVER paper.
 
 All circuit simulations use [PennyLane](https://pennylane.ai/).
 
@@ -105,20 +99,20 @@ See [requirements.txt](requirements.txt) for the full list.
 
 ### Step 1: Prepare the Dataset (run once)
 
-The `h5_maker_qm9.py` script downloads the QM9 dataset via PyTorch Geometric, filters molecules by heavy-atom count, computes pairwise geometric edge features (bond type, polar angle θ, azimuthal angle φ, interatomic distance), and writes train/val/test splits to HDF5 files.
+The `h5_maker_qm9.py` script downloads the QM9 dataset via PyTorch Geometric, filters molecules by heavy-atom count, computes pairwise geometric edge features (bond type, polar angle $\theta$, azimuthal angle $\phi$, interatomic distance), and writes train/val/test splits to HDF5 files.
 
 ```bash
 python3 data_processors/h5_maker_qm9.py
 ```
 
-This must be run once before training. Output paths are configured in the script via `SAVE_ROOT`. The default split filters molecules with 5–9 heavy atoms (50/10/40 train/val/test).
+This must be run once before training. Output paths are configured in the script via `SAVE_ROOT`. The default split filters molecules with 5--9 heavy atoms (50/10/40 train/val/test).
 
 **HDF5 schema per split:**
 
 | Dataset          | Shape                            | Description                          |
 |------------------|----------------------------------|--------------------------------------|
 | `node_features`  | `(N, MAX_NODES, 9)`              | Atomic features + atom count scalars |
-| `edge_features`  | `(N, MAX_NODES, MAX_NODES, 4)`   | Bond type, θ, φ, distance (Å)        |
+| `edge_features`  | `(N, MAX_NODES, MAX_NODES, 4)`   | Bond type, $\theta$, $\phi$, distance (Angstrom) |
 | `targets`        | `(N, 19)`                        | QM9 molecular properties             |
 | `n_atoms`        | `(N, 2)`                         | Total and heavy atom counts          |
 
